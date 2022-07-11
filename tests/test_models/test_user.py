@@ -1,67 +1,140 @@
 #!/usr/bin/python3
-
-import unittest
-import os
+"""
+Unit Test for User Class
+"""
+from datetime import datetime
+import inspect
+import json
+import models
+from os import environ, stat
 import pep8
-from models.user import User
-from models.base_model import BaseModel
+import unittest
+
+User = models.user.User
+BaseModel = models.base_model.BaseModel
+STORAGE_TYPE = environ.get('HBNB_TYPE_STORAGE')
 
 
-class TestUser(unittest.TestCase):
+class TestUserDocs(unittest.TestCase):
+    """Class for testing User Class docs"""
+
+    all_funcs = inspect.getmembers(User, inspect.isfunction)
 
     @classmethod
     def setUpClass(cls):
-        cls.my_user = User()
-        cls.my_user.first_name = "Betty"
-        cls.my_user.last_name = "Holberton"
-        cls.my_user.email = "airbnb@holbertonshool.com"
-        cls.my_user.password = "root"
+        print('\n\n.................................')
+        print('..... Testing Documentation .....')
+        print('........   User  Class   ........')
+        print('.................................\n\n')
+
+    def test_doc_file(self):
+        """... documentation for the file"""
+        expected = '\nUser Class from Models Module\n'
+        actual = models.user.__doc__
+        self.assertEqual(expected, actual)
+
+    def test_doc_class(self):
+        """... documentation for the class"""
+        actual = User.__doc__
+        self.assertIsNotNone(actual)
+
+    def test_all_function_docs(self):
+        """... tests for ALL DOCS for all functions in db_storage file"""
+        all_functions = TestUserDocs.all_funcs
+        for function in all_functions:
+            self.assertIsNotNone(function[1].__doc__)
+
+    def test_pep8_user(self):
+        """... user.py conforms to PEP8 Style"""
+        pep8style = pep8.StyleGuide(quiet=True)
+        errors = pep8style.check_files(['models/user.py'])
+        self.assertEqual(errors.total_errors, 0, errors.messages)
+
+    def test_file_is_executable(self):
+        """... tests if file has correct permissions so user can execute"""
+        file_stat = stat('models/user.py')
+        permissions = str(oct(file_stat[0]))
+        actual = int(permissions[5:-2]) >= 5
+        self.assertTrue(actual)
+
+
+class TestUserInstances(unittest.TestCase):
+    """testing for class instances"""
 
     @classmethod
-    def tearDownClass(cls):
-        del cls.my_user
+    def setUpClass(cls):
+        print('\n\n.................................')
+        print('....... Testing Functions .......')
+        print('.........  User  Class  .........')
+        print('.................................\n\n')
+
+    def setUp(self):
+        """initializes new user for testing"""
+        self.user = User()
+
+    def test_instantiation(self):
+        """... checks if User is properly instantiated"""
+        self.assertIsInstance(self.user, User)
+
+    @unittest.skipIf(STORAGE_TYPE == 'db', 'skip if environ is db')
+    def test_to_string(self):
+        """... checks if BaseModel is properly casted to string"""
+        my_str = str(self.user)
+        my_list = ['User', 'id', 'created_at']
+        actual = 0
+        for sub_str in my_list:
+            if sub_str in my_str:
+                actual += 1
+        self.assertTrue(3 == actual)
+
+    @unittest.skipIf(STORAGE_TYPE == 'db', 'skip if environ is db')
+    def test_instantiation_no_updated(self):
+        """... should not have updated attribute"""
+        self.user = User()
+        my_str = str(self.user)
+        actual = 0
+        if 'updated_at' in my_str:
+            actual += 1
+        self.assertTrue(0 == actual)
+
+    @unittest.skipIf(STORAGE_TYPE == 'db', 'skip if environ is db')
+    def test_updated_at(self):
+        """... save function should add updated_at attribute"""
+        self.user.save()
+        actual = type(self.user.updated_at)
+        expected = type(datetime.now())
+        self.assertEqual(expected, actual)
+
+    @unittest.skipIf(STORAGE_TYPE == 'db', 'skip if environ is db')
+    def test_to_json(self):
+        """... to_json should return serializable dict object"""
+        self.user_json = self.user.to_json()
+        actual = 1
         try:
-            os.remove("file.json")
-        except FileNotFoundError:
-            pass
+            serialized = json.dumps(self.user_json)
+        except:
+            actual = 0
+        self.assertTrue(1 == actual)
 
-    def test_style_check(self):
-        """
-        Tests pep8 style
-        """
-        style = pep8.StyleGuide(quiet=True)
-        p = style.check_files(['models/user.py'])
-        self.assertEqual(p.total_errors, 0, "fix pep8")
+    @unittest.skipIf(STORAGE_TYPE == 'db', 'skip if environ is db')
+    def test_json_class(self):
+        """... to_json should include class key with value User"""
+        self.user_json = self.user.to_json()
+        actual = None
+        if self.user_json['__class__']:
+            actual = self.user_json['__class__']
+        expected = 'User'
+        self.assertEqual(expected, actual)
 
-    def test_is_subclass(self):
-        self.assertTrue(issubclass(self.my_user.__class__, BaseModel), True)
+    def test_email_attribute(self):
+        """... add email attribute"""
+        self.user.email = "bettyholbertn@gmail.com"
+        if hasattr(self.user, 'email'):
+            actual = self.user.email
+        else:
+            actual = ''
+        expected = "bettyholbertn@gmail.com"
+        self.assertEqual(expected, actual)
 
-    def test_checking_for_functions(self):
-        self.assertIsNotNone(User.__doc__)
-
-    def test_has_attributes(self):
-        self.assertTrue('email' in self.my_user.__dict__)
-        self.assertTrue('id' in self.my_user.__dict__)
-        self.assertTrue('created_at' in self.my_user.__dict__)
-        self.assertTrue('updated_at' in self.my_user.__dict__)
-        self.assertTrue('password' in self.my_user.__dict__)
-        self.assertTrue('first_name' in self.my_user.__dict__)
-        self.assertTrue('last_name' in self.my_user.__dict__)
-
-    def test_attributes_are_strings(self):
-        self.assertEqual(type(self.my_user.email), str)
-        self.assertEqual(type(self.my_user.password), str)
-        self.assertEqual(type(self.my_user.first_name), str)
-        self.assertEqual(type(self.my_user.first_name), str)
-
-    @unittest.skipIf(os.getenv('HBNB_TYPE_STORAGE') == 'db', "testing skip")
-    def test_save(self):
-        self.my_user.save()
-        self.assertNotEqual(self.my_user.created_at, self.my_user.updated_at)
-
-    def test_to_dict(self):
-        self.assertEqual('to_dict' in dir(self.my_user), True)
-
-
-if __name__ == "__main__":
-    unittest.main()
+if __name__ == '__main__':
+    unittest.main
